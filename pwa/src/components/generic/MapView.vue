@@ -1,91 +1,150 @@
 <template>
-  <div id="mapContainer" class=""></div>
+  <div class="min-h-[50vh]" ref="mapElement"></div>
 </template>
 
 <script lang="ts">
-import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
+
+// TODO: set developer API in .env
+
+// Props
+// TODO: Set coordinates of map
+// TODO: Set marker on map
+// TODO: Set polygon on map
+
+// Emit
+// TODO: Return coordinates of tap / click on map
+
+// API
+// TODO: Replace location with coordinates
+import mapboxgl, { MapMouseEvent } from 'mapbox-gl'
+import { onMounted, ref } from 'vue-demi'
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
 
 export default {
-  setup() {
-    return {}
-  },
-  mounted() {
+  setup(props, { emit }) {
+    const mapElement = ref<HTMLDivElement>()
+
     //@ts-ignore
     mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
-    const coordinates = [-69.25657, 45.52524]
+    const initMap = () => {
+      if (!mapElement.value) return
 
-    const map = new mapboxgl.Map({
-      container: 'mapContainer',
-      style: 'mapbox://styles/mapbox/streets-v11',
-      center: coordinates,
-      zoom: 7,
-      projection: 'globe',
-    })
+      const map = new mapboxgl.Map({
+        container: mapElement.value, // container ID
 
-    map.on('style.load', () => {
-      map.setFog({})
-    })
+        style: 'mapbox://styles/mapbox/streets-v11', // style URL
 
-    //return coordinates on tap
-    map.on('click', (e) => {
-      console.log(`A click event has occurred at ${e.lngLat}`)
-    })
+        center: [3.2495710000008273, 50.824616240381374], // starting position [lng, lat]
 
-    //Added polygon
-    map.on('load', () => {
-      // Add a data source containing GeoJSON data.
-      map.addSource('maine', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'Polygon',
-            coordinates: [
-              [
-                [-67.13734, 45.13745],
-                [-66.96466, 44.8097],
-                [-68.03252, 44.3252],
-                [-69.06, 43.98],
-                [-70.11617, 43.68405],
-                [-70.64573, 43.09008],
-                [-70.75102, 43.08003],
-                [-70.79761, 43.21973],
-                [-70.98176, 43.36789],
-                [-70.94416, 43.46633],
-                [-71.08482, 45.30524],
-                [-70.66002, 45.46022],
-                [-70.30495, 45.91479],
-                [-70.00014, 46.69317],
-                [-69.23708, 47.44777],
-                [-68.90478, 47.18479],
-                [-68.2343, 47.35462],
-                [-67.79035, 47.06624],
-                [-67.79141, 45.70258],
-                [-67.13734, 45.13745],
-              ],
-            ],
-          },
-        },
-      })
-      // Add a new layer to visualize the polygon.
-      map.addLayer({
-        id: 'maine',
-        type: 'fill',
-        source: 'maine', // reference the data source
-        layout: {},
-        paint: {
-          'fill-color': '#0080ff', // blue color fill
-          'fill-opacity': 0.5,
-        },
-      })
-      new mapboxgl.Marker({
-        color: '#FFFFFF',
-        draggable: true,
-      })
-        .setLngLat([-69.25657, 45.52524])
+        zoom: 9, // starting zoom // projection: { name: 'globe' } // display the map as a 3D globe
+      }) //set marker on map
+
+      const marker = new mapboxgl.Marker()
+
+        .setLngLat([-74.5, 40])
+
         .addTo(map)
+
+      const marker2 = new mapboxgl.Marker()
+
+        .setLngLat([3.2495710000008273, 50.824616240381374])
+
+        .addTo(map) //set polygon on map
+
+      map.on('load', () => {
+        map.addSource('route', {
+          type: 'geojson',
+
+          data: {
+            type: 'Feature',
+
+            properties: {},
+
+            geometry: {
+              type: 'Polygon',
+
+              coordinates: [
+                [
+                  [-74.2, 40.1],
+
+                  [-74.6, 40.1],
+
+                  [-74.5, 39.9],
+
+                  [-74.2, 40.1],
+                ],
+              ],
+            },
+          },
+        })
+
+        map.addLayer({
+          id: 'route',
+
+          type: 'fill',
+
+          source: 'route', // reference the data source
+
+          layout: {},
+
+          paint: {
+            'fill-color': '#0080ff', // blue color fill
+
+            'fill-opacity': 0.5,
+          },
+        })
+
+        map.addLayer({
+          id: 'outline',
+
+          type: 'line',
+
+          source: 'route',
+
+          layout: {
+            'line-join': 'round',
+
+            'line-cap': 'round',
+          },
+
+          paint: {
+            'line-color': '#000',
+
+            'line-width': 3,
+          },
+        })
+      }) //props //set coordinates of map
+
+      map.addControl(
+        new MapboxGeocoder({
+          accessToken: mapboxgl.accessToken,
+
+          mapboxgl: mapboxgl,
+        }),
+      ) //emit //TODO return coordinates of tap / click on map //API //TODO: Replace location with coordinates
+
+      function add_marker(event: MapMouseEvent) {
+        emit('marker', event.lngLat)
+
+        marker
+          .setLngLat(event.lngLat)
+
+          .addTo(map)
+      }
+
+      map.on('click', add_marker)
+    }
+
+    onMounted(() => {
+      initMap()
     })
+
+    return {
+      mapElement,
+    }
   },
 }
 </script>
